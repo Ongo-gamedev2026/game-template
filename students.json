@@ -1,0 +1,85 @@
+{
+  "_안내": "학생 한 명당 { } 한 덩어리입니다. 학생이 늘어나면 덩어리를 복사해서 추가하세요. repo는 GitHub 저장소 이름과 정확히 같아야 합니다. status는 wip(개발 중) 또는 done(완성), week는 진행한 주차(0~6)입니다.",
+  "students": [
+    {
+      "name": "학생1",
+      "repo": "game-student1",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🐍",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생2",
+      "repo": "game-student2",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🚀",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생3",
+      "repo": "game-student3",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "💩",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생4",
+      "repo": "game-student4",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "👾",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생5",
+      "repo": "game-student5",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🏓",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생6",
+      "repo": "game-student6",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🧱",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생7",
+      "repo": "game-student7",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🐸",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    },
+    {
+      "name": "학생8",
+      "repo": "game-student8",
+      "title": "제목 미정",
+      "genre": "",
+      "emoji": "🎯",
+      "description": "1주차 고전 게임 실습 중",
+      "status": "wip",
+      "week": 0
+    }
+  ]
+}
