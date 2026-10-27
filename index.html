@@ -37,6 +37,7 @@
   li a.view { color:var(--muted); white-space:nowrap; }
   li a.submit { flex:1; border-style:dashed; color:var(--cyan); }
   .hist { color:var(--muted); font-size:13px; margin:8px 2px 0; }
+  .hist a { color:var(--pink); }
   .none { color:var(--muted); font-size:14px; }
   footer { text-align:center; color:var(--muted); font-size:12px; padding:0 16px 40px; }
   @media (max-width:640px){ .top { grid-template-columns:1fr 1fr; } }
@@ -49,12 +50,12 @@
 </header>
 <div id="preview"></div>
 <nav class="top">
-  <a class="play" href="play/">🕹️ 내 게임 하기</a>
+  <a class="play" href="versions.html">🕹️ 내 게임 하기</a>
   <a id="upGame" href="#" target="_blank" rel="noopener">⬆️ 게임 올리기</a>
   <a href="/" target="_blank" rel="noopener">🏠 메인 사이트</a>
   <a href="/materials/" target="_blank" rel="noopener">📚 수업 자료실</a>
 </nav>
-<p class="tip">✏️ <b>작성하기</b>를 누르면 GitHub 편집 화면이 열려요. (GitHub 로그인 필요) 다 쓰면 오른쪽 위 초록색 <b>Commit changes</b>를 꼭 눌러야 저장돼요!</p>
+<p class="tip">✏️ <b>작성하기</b>를 누르면 GitHub 편집 화면이 열려요. (GitHub 로그인 필요) 다 쓰면 오른쪽 위 초록색 <b>Commit changes</b>를 꼭 눌러야 저장돼요! <b>📮 제출하기</b> 화면에서는 패치노트(바뀐 점)를 채우고 제출해요.</p>
 <main id="list"><p class="none">불러오는 중…</p></main>
 <footer id="foot">Ongo-gamedev2026</footer>
 <script>
@@ -63,6 +64,8 @@ const REPO = location.pathname.split("/").filter(Boolean)[0] || "game-template";
 const GH = `https://github.com/${ORG}/${REPO}`;
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const fmt = iso => { const d = new Date(iso); return `${d.getMonth()+1}/${d.getDate()}`; };
+const NOTE_GAME = "## 🛠 패치노트\n- 바뀐 점: \n- 고친 버그: \n- 다음 버전에서 할 일: ";
+const NOTE_DOC = "## 📝 제출 메모\n- 이번에 쓴 내용: \n- 선생님께 질문: ";
 const get = u => fetch(u, { cache:"no-store" }).then(r => { if(!r.ok) throw 0; return r.json(); });
 
 document.getElementById("upGame").href = `${GH}/upload/main/play`;
@@ -80,7 +83,7 @@ Promise.all([get("/weeks.json"), get("/students.json"), get("/data/submissions.j
       const last = mine[mine.length - 1];
       const next = last ? last.version + 1 : 1;
       const pill = last ? `<span class="pill ${last.version >= 2 ? "v2" : "v1"}">v${last.version} 제출 완료</span>` : `<span class="pill">미제출</span>`;
-      const q = new URLSearchParams({ tag:`week${w.week}-v${next}`, title:`${w.week}주차 v${next} 제출`, body:`${w.week}주차 과제를 제출합니다.` });
+      const q = new URLSearchParams({ tag:`week${w.week}-v${next}`, title:`${w.week}주차 v${next} 제출`, body: w.game ? NOTE_GAME : NOTE_DOC });
       return `<section class="week">
         <div class="week-head"><h2><b>${w.week}주차</b>${esc(w.title)}</h2>${pill}</div>
         <ul>
@@ -89,7 +92,7 @@ Promise.all([get("/weeks.json"), get("/students.json"), get("/data/submissions.j
             <a class="view" href="${GH}/blob/main/${d.path}" target="_blank" rel="noopener">보기</a></li>`).join("")}
           <li><a class="submit" href="${GH}/releases/new?${q}" target="_blank" rel="noopener">📮 ${w.week}주차 v${next} 제출하기 — 열린 화면 맨 아래 초록색 Publish release</a></li>
         </ul>
-        ${mine.length ? `<p class="hist">제출 기록: ${mine.map(r => `v${r.version} (${fmt(r.published_at)})`).join(" → ")}</p>` : ""}
+        ${mine.length ? `<p class="hist">제출 기록: ${mine.map(r => `v${r.version} (${fmt(r.published_at)})`).join(" → ")}${w.game ? ` · <a href="versions.html?v=${last.tag}">🕹️ 버전별 플레이 · 패치노트</a>` : ""}</p>` : ""}
       </section>`;
     }).join("");
   })

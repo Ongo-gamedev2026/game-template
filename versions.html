@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 게임 · 버전별 플레이</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+  :root { --bg:#0d0b1e; --panel:#18153a; --line:#2e2a63; --text:#ecebff; --muted:#9a96c8; --pink:#ff4fa3; --cyan:#3ee6ff; --green:#4ade80; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard",system-ui,sans-serif; line-height:1.6; }
+  a { color:var(--cyan); }
+  header { text-align:center; padding:36px 16px 14px; }
+  h1 { margin:0 0 4px; font-size:clamp(22px,5vw,30px); }
+  h1 span { color:var(--pink); }
+  header p { margin:0; color:var(--muted); }
+  .wrap { max-width:960px; margin:0 auto; padding:0 16px 48px; }
+  .back { display:inline-block; margin:0 0 12px; color:var(--muted); text-decoration:none; }
+  .back:hover { color:var(--pink); }
+  .vers { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .vers button { font:inherit; font-size:14px; font-weight:700; cursor:pointer; background:var(--panel); color:var(--text); border:2px solid var(--line); padding:7px 14px; }
+  .vers button:hover { border-color:var(--pink); }
+  .vers button.on { background:var(--pink); border-color:var(--pink); color:#0d0b1e; }
+  .stage { background:#000; border:2px solid var(--line); position:relative; }
+  .stage iframe { display:block; width:100%; height:min(70vh,640px); border:0; background:#fff; }
+  .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin:8px 0 26px; color:var(--muted); font-size:14px; }
+  .bar button { font:inherit; font-size:14px; cursor:pointer; background:none; color:var(--cyan); border:1px solid var(--line); padding:5px 12px; }
+  h2 { font-size:19px; margin:0 0 12px; }
+  h2 b { color:var(--cyan); }
+  .note { background:var(--panel); border:2px solid var(--line); padding:14px 18px; margin:0 0 12px; }
+  .note.on { border-color:var(--pink); }
+  .note-head { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:6px; }
+  .note-head b { font-size:16px; }
+  .note-head span { color:var(--muted); font-size:13px; }
+  .note-head button { margin-left:auto; font:inherit; font-size:13px; cursor:pointer; background:none; color:var(--pink); border:1px solid var(--line); padding:3px 10px; }
+  .note .md { font-size:15px; }
+  .note .md h2, .note .md h3 { font-size:15px; margin:8px 0 4px; color:var(--cyan); }
+  .note .md ul { margin:4px 0; padding-left:20px; }
+  .note .md p { margin:4px 0; }
+  .none { color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🕹️ <span id="who">내</span> 게임</h1>
+  <p>버전을 골라 플레이하고, 버전마다 무엇이 바뀌었는지 패치노트로 확인해요</p>
+</header>
+<div class="wrap">
+  <a class="back" href="./">← 내 작업실로</a>
+  <div class="vers" id="vers"></div>
+  <div class="stage"><iframe id="game" title="게임" sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-modals" allow="fullscreen; gamepad; autoplay"></iframe></div>
+  <div class="bar">
+    <span id="playing">불러오는 중…</span>
+    <span><button id="full">⛶ 크게 보기</button></span>
+  </div>
+  <h2>📜 <b>패치노트</b></h2>
+  <div id="notes"><p class="none">불러오는 중…</p></div>
+</div>
+<script>
+const ORG = "Ongo-gamedev2026";
+const REPO = location.pathname.split("/").filter(Boolean)[0] || "game-template";
+const RAW = ref => `https://raw.githubusercontent.com/${ORG}/${REPO}/${ref}/play/index.html`;
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const fmt = iso => { const d = new Date(iso); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}.`; };
+const md = t => (window.marked && window.DOMPurify) ? DOMPurify.sanitize(marked.parse(t || "", { breaks:true })) : `<p>${esc(t).replace(/\n/g,"<br>")}</p>`;
+const isPlaceholder = html => /<title>\s*게임 준비 중\s*<\/title>/.test(html);
+const frame = document.getElementById("game");
+let versions = [];   // [{key, label, rec, html}]  key "latest" = 지금 올라가 있는 게임
+
+function play(key){
+  const v = versions.find(x => x.key === key); if(!v) return;
+  if (v.key === "latest") { frame.removeAttribute("srcdoc"); frame.src = "play/"; }
+  else { frame.removeAttribute("src"); frame.srcdoc = v.html; }
+  document.querySelectorAll("#vers button").forEach(b => b.classList.toggle("on", b.dataset.k === key));
+  document.querySelectorAll(".note").forEach(n => n.classList.toggle("on", n.dataset.k === key));
+  document.getElementById("playing").textContent = v.key === "latest"
+    ? "▶ 지금 올라가 있는 최신 게임 · 게임 화면을 한 번 클릭한 뒤 키보드를 써요"
+    : `▶ ${v.label} (${fmt(v.rec.published_at)} 제출) · 게임 화면을 한 번 클릭한 뒤 키보드를 써요`;
+  frame.focus();
+}
+document.getElementById("full").onclick = () => { (frame.requestFullscreen || frame.webkitRequestFullscreen || (()=>{})).call(frame); };
+
+(async () => {
+  const [stu, sub] = await Promise.all([
+    fetch("/students.json", {cache:"no-store"}).then(r => r.json()).catch(() => ({students:[]})),
+    fetch("/data/submissions.json", {cache:"no-store"}).then(r => r.json()).catch(() => ({records:[]}))
+  ]);
+  const me = (stu.students || []).find(s => s.repo === REPO);
+  if (me) document.getElementById("who").textContent = `학생 ${me.no}` + (me.nickname ? ` · ${me.nickname}` : "") + "의";
+  const recs = (sub.records || []).filter(r => r.repo === REPO)
+    .sort((a,b) => new Date(a.published_at) - new Date(b.published_at));
+
+  // 제출된 버전마다 그때의 게임 파일을 불러와서, 게임이 실제로 바뀐 제출만 버전으로 보여요
+  const files = await Promise.all(recs.map(r => fetch(RAW(r.tag)).then(x => x.ok ? x.text() : null).catch(() => null)));
+  let prev = null;
+  recs.forEach((r, i) => {
+    const html = files[i];
+    if (!html || isPlaceholder(html) || html === prev) return;
+    prev = html;
+    versions.push({ key:r.tag, label:`${r.week}주차 v${r.version}`, rec:r, html });
+  });
+  versions.push({ key:"latest", label:"최신", rec:null, html:null });
+
+  document.getElementById("vers").innerHTML = versions.map(v =>
+    `<button data-k="${esc(v.key)}">${v.key === "latest" ? "⭐ 최신" : esc(v.label)}</button>`).join("");
+  document.querySelectorAll("#vers button").forEach(b => b.onclick = () => play(b.dataset.k));
+
+  const withNotes = versions.filter(v => v.rec).slice().reverse();
+  document.getElementById("notes").innerHTML = withNotes.length ? withNotes.map(v => `
+    <article class="note" data-k="${esc(v.key)}">
+      <div class="note-head"><b>${esc(v.label)}</b><span>${fmt(v.rec.published_at)}</span>
+        <button data-play="${esc(v.key)}">▶ 이 버전 플레이</button></div>
+      <div class="md">${v.rec.notes ? md(v.rec.notes) : `<p class="none">패치노트를 쓰지 않았어요.</p>`}</div>
+    </article>`).join("")
+    : `<p class="none">아직 제출한 게임 버전이 없어요. 게임을 올리고 📮 제출하기를 누르면, 그때 쓴 패치노트가 여기에 쌓여요.</p>`;
+  document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { play(b.dataset.play); scrollTo({top:0, behavior:"smooth"}); });
+
+  const want = new URLSearchParams(location.search).get("v");
+  play(versions.some(v => v.key === want) ? want : "latest");
+})();
+</script>
+</body>
+</html>
