@@ -3,100 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>내 작업실 · 온고 게임제작반</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<title>내 작업실로 가는 중…</title>
 <style>
-  :root { --bg:#0d0b1e; --panel:#18153a; --line:#2e2a63; --text:#ecebff; --muted:#9a96c8; --pink:#ff4fa3; --cyan:#3ee6ff; --green:#4ade80; --blue:#7aa2ff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:"Pretendard",system-ui,sans-serif; line-height:1.6; }
-  a { color:inherit; }
-  header { text-align:center; padding:44px 16px 20px; }
-  h1 { margin:0 0 6px; font-size:clamp(24px,5vw,34px); }
-  h1 span { color:var(--pink); }
-  header p { margin:0; color:var(--muted); }
-  .preview { max-width:820px; margin:0 auto 14px; padding:10px 14px; border:2px dashed var(--cyan); color:var(--cyan); font-size:14px; }
-  .top { max-width:820px; margin:0 auto; padding:0 16px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-  .top a { display:block; text-align:center; padding:12px 8px; background:var(--panel); border:2px solid var(--line); text-decoration:none; font-weight:700; font-size:15px; }
-  .top a:hover { border-color:var(--pink); color:var(--pink); }
-  .top a.play { border-color:var(--pink); }
-  .tip { max-width:820px; margin:14px auto 0; padding:0 16px; color:var(--muted); font-size:14px; }
-  .tip b { color:var(--text); }
-  main { max-width:820px; margin:0 auto; padding:18px 16px 48px; display:grid; gap:14px; }
-  .week { background:var(--panel); border:2px solid var(--line); padding:16px 18px; }
-  .week-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
-  .week h2 { margin:0; font-size:17px; flex:1; min-width:200px; }
-  .week h2 b { color:var(--cyan); margin-right:8px; }
-  .pill { font-size:13px; font-weight:700; padding:2px 10px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
-  .pill.v1 { color:var(--green); border-color:var(--green); }
-  .pill.v2 { color:var(--blue); border-color:var(--blue); }
-  ul { margin:0; padding:0; list-style:none; display:grid; gap:6px; }
-  li { display:flex; gap:6px; }
-  li a { display:block; padding:10px 12px; border:1px solid var(--line); text-decoration:none; }
-  li a.write { flex:1; }
-  li a:hover { border-color:var(--pink); color:var(--pink); }
-  li a.view { color:var(--muted); white-space:nowrap; }
-  li a.submit { flex:1; border-style:dashed; color:var(--cyan); }
-  .hist { color:var(--muted); font-size:13px; margin:8px 2px 0; }
-  .hist a { color:var(--pink); }
-  .none { color:var(--muted); font-size:14px; }
-  footer { text-align:center; color:var(--muted); font-size:12px; padding:0 16px 40px; }
-  @media (max-width:640px){ .top { grid-template-columns:1fr 1fr; } }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:#1b1838; color:#ecebff;
+         font-family:"Pretendard",system-ui,sans-serif; text-align:center; padding:16px; }
+  a { color:#9fe8ff; }
 </style>
+<script>
+  // 이 주소로 들어오면 메인 마을의 "내 집(작업실)"로 바로 이동해요.
+  var repo = location.pathname.split("/").filter(Boolean)[0] || "game-template";
+  location.replace("/#/house/" + repo);
+</script>
 </head>
 <body>
-<header>
-  <h1>🎮 <span id="who">내</span> 작업실</h1>
-  <p>온고 게임제작반 2026 · 주차를 골라 바로 작성해요</p>
-</header>
-<div id="preview"></div>
-<nav class="top">
-  <a class="play" href="versions.html">🕹️ 내 게임 하기</a>
-  <a id="upGame" href="#" target="_blank" rel="noopener">⬆️ 게임 올리기</a>
-  <a href="/" target="_blank" rel="noopener">🏠 메인 사이트</a>
-  <a href="/materials/" target="_blank" rel="noopener">📚 수업 자료실</a>
-</nav>
-<p class="tip">✏️ <b>작성하기</b>를 누르면 GitHub 편집 화면이 열려요. (GitHub 로그인 필요) 다 쓰면 오른쪽 위 초록색 <b>Commit changes</b>를 꼭 눌러야 저장돼요! <b>📮 제출하기</b> 화면에서는 패치노트(바뀐 점)를 채우고 제출해요.</p>
-<main id="list"><p class="none">불러오는 중…</p></main>
-<footer id="foot">Ongo-gamedev2026</footer>
-<script>
-const ORG = "Ongo-gamedev2026";
-const REPO = location.pathname.split("/").filter(Boolean)[0] || "game-template";
-const GH = `https://github.com/${ORG}/${REPO}`;
-const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-const fmt = iso => { const d = new Date(iso); return `${d.getMonth()+1}/${d.getDate()}`; };
-const NOTE_GAME = "## 🛠 패치노트\n- 바뀐 점: \n- 고친 버그: \n- 다음 버전에서 할 일: ";
-const NOTE_DOC = "## 📝 제출 메모\n- 이번에 쓴 내용: \n- 선생님께 질문: ";
-const get = u => fetch(u, { cache:"no-store" }).then(r => { if(!r.ok) throw 0; return r.json(); });
-
-document.getElementById("upGame").href = `${GH}/upload/main/play`;
-document.getElementById("foot").textContent = `Ongo-gamedev2026 · ${REPO}`;
-if (REPO === "game-template") document.getElementById("preview").innerHTML =
-  `<div class="preview">👀 템플릿 미리보기예요. 학생 저장소에서는 이 자리에 학생 번호가 나오고, 버튼이 그 학생 저장소로 연결돼요.</div>`;
-
-Promise.all([get("/weeks.json"), get("/students.json"), get("/data/submissions.json").catch(() => ({records:[]}))])
-  .then(([wk, stu, sub]) => {
-    const me = stu.students.find(s => s.repo === REPO);
-    if (me) document.getElementById("who").textContent = `학생 ${me.no}` + (me.nickname ? ` · ${me.nickname}` : "") + "의";
-    const recs = (sub.records || []).filter(r => r.repo === REPO);
-    document.getElementById("list").innerHTML = wk.weeks.map(w => {
-      const mine = recs.filter(r => r.week === w.week).sort((a,b) => a.version - b.version);
-      const last = mine[mine.length - 1];
-      const next = last ? last.version + 1 : 1;
-      const pill = last ? `<span class="pill ${last.version >= 2 ? "v2" : "v1"}">v${last.version} 제출 완료</span>` : `<span class="pill">미제출</span>`;
-      const q = new URLSearchParams({ tag:`week${w.week}-v${next}`, title:`${w.week}주차 v${next} 제출`, body: w.game ? NOTE_GAME : NOTE_DOC });
-      return `<section class="week">
-        <div class="week-head"><h2><b>${w.week}주차</b>${esc(w.title)}</h2>${pill}</div>
-        <ul>
-          ${w.docs.map(d => `<li>
-            <a class="write" href="${GH}/edit/main/${d.path}" target="_blank" rel="noopener">✏️ ${esc(d.name)} 작성하기</a>
-            <a class="view" href="${GH}/blob/main/${d.path}" target="_blank" rel="noopener">보기</a></li>`).join("")}
-          <li><a class="submit" href="${GH}/releases/new?${q}" target="_blank" rel="noopener">📮 ${w.week}주차 v${next} 제출하기 — 열린 화면 맨 아래 초록색 Publish release</a></li>
-        </ul>
-        ${mine.length ? `<p class="hist">제출 기록: ${mine.map(r => `v${r.version} (${fmt(r.published_at)})`).join(" → ")}${w.game ? ` · <a href="versions.html?v=${last.tag}">🕹️ 버전별 플레이 · 패치노트</a>` : ""}</p>` : ""}
-      </section>`;
-    }).join("");
-  })
-  .catch(() => { document.getElementById("list").innerHTML = `<p class="none">주차 정보를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>`; });
-</script>
+  <div>
+    <p>🏠 내 작업실로 가는 중이에요…</p>
+    <p><a id="go" href="/">바로 가기</a></p>
+  </div>
+  <script>document.getElementById("go").href = "/#/house/" + (location.pathname.split("/").filter(Boolean)[0] || "");</script>
 </body>
 </html>
