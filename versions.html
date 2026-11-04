@@ -40,6 +40,12 @@
   .note .md ul { margin:4px 0; padding-left:20px; }
   .note .md p { margin:4px 0; }
   .none { color:var(--muted); font-size:14px; }
+  .intro { background:var(--panel); border:2px solid var(--line); padding:14px 18px; margin:0 0 14px; }
+  .intro h2 { margin:0 0 6px; font-size:20px; color:var(--pink); }
+  .intro p { margin:4px 0; }
+  .intro .keys { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:14px; color:var(--muted); }
+  .intro kbd { font:inherit; font-weight:700; color:var(--text); background:#0d0b1e; border:1px solid var(--line); padding:1px 8px; margin-right:4px; }
+  .golink { display:inline-block; margin-left:12px; color:var(--muted); font-size:14px; }
 </style>
 </head>
 <body>
@@ -48,7 +54,8 @@
   <p>버전을 골라 플레이하고, 버전마다 무엇이 바뀌었는지 패치노트로 확인해요</p>
 </header>
 <div class="wrap">
-  <a class="back" href="./" target="_top">← 내 작업실로</a>
+  <a class="back" href="./" target="_top">← 작업실로</a><a class="golink" href="#reviews">💬 플레이 소감 보러 가기 ↓</a>
+  <div id="intro"></div>
   <div class="vers" id="vers"></div>
   <div class="stage"><iframe id="game" title="게임" sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-modals" allow="fullscreen; gamepad; autoplay"></iframe></div>
   <div class="bar">
@@ -57,7 +64,9 @@
   </div>
   <h2>📜 <b>패치노트</b></h2>
   <div id="notes"><p class="none">불러오는 중…</p></div>
+  <div id="rvBox"></div>
 </div>
+<script src="/review.js"></script>
 <script>
 const ORG = "Ongo-gamedev2026";
 const REPO = location.pathname.split("/").filter(Boolean)[0] || "game-template";
@@ -73,6 +82,8 @@ function play(key){
   const v = versions.find(x => x.key === key); if(!v) return;
   if (v.key === "latest") { frame.removeAttribute("srcdoc"); frame.src = "play/"; }
   else { frame.removeAttribute("src"); frame.srcdoc = v.html; }
+  window.rvVersion = v.key === "latest" ? "최신 버전" : v.label;
+  const vt = document.querySelector(".rv [data-ver]"); if (vt) vt.textContent = "지금 플레이 중: " + window.rvVersion;
   document.querySelectorAll("#vers button").forEach(b => b.classList.toggle("on", b.dataset.k === key));
   document.querySelectorAll(".note").forEach(n => n.classList.toggle("on", n.dataset.k === key));
   document.getElementById("playing").textContent = v.key === "latest"
@@ -117,8 +128,25 @@ document.getElementById("full").onclick = () => { (frame.requestFullscreen || fr
     : `<p class="none">아직 제출한 게임 버전이 없어요. 게임을 올리고 📮 제출하기를 누르면, 그때 쓴 패치노트가 여기에 쌓여요.</p>`;
   document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { play(b.dataset.play); scrollTo({top:0, behavior:"smooth"}); });
 
+  // 게임 소개 (5주차에 완성 버전을 올리면 game.json이 생겨요)
+  try {
+    const g = await fetch(`https://raw.githubusercontent.com/${ORG}/${REPO}/main/game.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null);
+    if (g && (g.title || g.intro)) {
+      if (g.title) document.title = g.title;
+      document.getElementById("intro").innerHTML = `<div class="intro"><h2>🕹️ ${esc(g.title || "내 게임")}${g.ver ? ` <small style="color:var(--muted);font-size:14px">${esc(g.ver)}</small>` : ""}</h2>
+        ${g.intro ? `<p>${esc(g.intro)}</p>` : ""}${g.goal ? `<p>🎯 <b>목표</b> ${esc(g.goal)}</p>` : ""}
+        ${(g.controls || []).length ? `<div class="keys">${g.controls.map(c => `<span><kbd>${esc(c[0])}</kbd>${esc(c[1])}</span>`).join("")}</div>` : ""}</div>`;
+    }
+  } catch (_) {}
+
   const want = new URLSearchParams(location.search).get("v");
   play(versions.some(v => v.key === want) ? want : "latest");
+
+  // 💬 플레이 소감 · 댓글 (메인 사이트의 review.js)
+  if (window.Reviews) {
+    Reviews.mount(document.getElementById("rvBox"), REPO);
+    if (location.hash === "#reviews") setTimeout(() => { const r = document.getElementById("reviews"); if (r) r.scrollIntoView({ behavior:"smooth" }); }, 1200);
+  }
 })();
 </script>
 </body>
