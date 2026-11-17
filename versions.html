@@ -23,8 +23,11 @@
   .vers button { font:inherit; font-size:14px; font-weight:700; cursor:pointer; background:var(--panel); color:var(--text); border:2px solid var(--line); padding:7px 14px; }
   .vers button:hover { border-color:var(--pink); }
   .vers button.on { background:var(--pink); border-color:var(--pink); color:#0d0b1e; }
-  .stage { background:#000; border:2px solid var(--line); position:relative; }
-  .stage iframe { display:block; width:100%; height:min(70vh,640px); border:0; background:#fff; }
+  .stage { background:#000; border:2px solid var(--line); position:relative; overflow:hidden; height:min(70vh,640px); }
+  /* 게임은 원래 해상도 그대로 띄우고, 화면에 맞게 통째로 확대·축소해요 */
+  .stage iframe { position:absolute; top:0; left:0; transform-origin:0 0; border:0; background:#fff; }
+  .stage:fullscreen { border:0; width:100vw; height:100vh; }
+  .stage:-webkit-full-screen { border:0; width:100vw; height:100vh; }
   .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin:8px 0 26px; color:var(--muted); font-size:14px; }
   .bar button { font:inherit; font-size:14px; cursor:pointer; background:none; color:var(--cyan); border:1px solid var(--line); padding:5px 12px; }
   h2 { font-size:19px; margin:0 0 12px; }
@@ -60,7 +63,7 @@
   <div class="stage"><iframe id="game" title="게임" sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-modals" allow="fullscreen; gamepad; autoplay"></iframe></div>
   <div class="bar">
     <span id="playing">불러오는 중…</span>
-    <span><button id="full">⛶ 크게 보기</button></span>
+    <span><button id="newwin">↗ 새 창으로</button> <button id="full">⛶ 전체 화면</button></span>
   </div>
   <h2>📜 <b>패치노트</b></h2>
   <div id="notes"><p class="none">불러오는 중…</p></div>
@@ -80,6 +83,7 @@ let versions = [];   // [{key, label, rec, html}]  key "latest" = 지금 올라�
 
 function play(key){
   const v = versions.find(x => x.key === key); if(!v) return;
+  window.rvKey = v.key;
   if (v.key === "latest") { frame.removeAttribute("srcdoc"); frame.src = "play/"; }
   else { frame.removeAttribute("src"); frame.srcdoc = v.html; }
   window.rvVersion = v.key === "latest" ? "최신 버전" : v.label;
@@ -91,7 +95,60 @@ function play(key){
     : `▶ ${v.label} (${fmt(v.rec.published_at)} 제출) · 게임 화면을 한 번 클릭한 뒤 키보드를 써요`;
   frame.focus();
 }
-document.getElementById("full").onclick = () => { (frame.requestFullscreen || frame.webkitRequestFullscreen || (()=>{})).call(frame); };
+// ── 화면 맞춤: 게임의 원래 크기를 재서, 보이는 영역에 꼭 맞게 확대·축소 ──
+const stage = document.querySelector(".stage");
+const BASE = { w:1280, h:800 };          // 창 크기에 맞춰 늘어나는 게임은 이 크기로 그려요
+let GW = BASE.w, GH = BASE.h;
+const isFull = () => (document.fullscreenElement || document.webkitFullscreenElement) === stage;
+function fit(){
+  const fs = isFull();
+  const availW = stage.clientWidth;
+  const availH = fs ? stage.clientHeight : Math.max(300, Math.min(window.innerHeight - 140, 900));
+  const s = Math.min(availW / GW, availH / GH, fs ? 4 : 2);
+  if (!fs) stage.style.height = Math.round(GH * s) + "px";
+  const top = fs ? (stage.clientHeight - GH * s) / 2 : 0;
+  frame.style.width = GW + "px"; frame.style.height = GH + "px";
+  frame.style.transform = `translate(${(availW - GW * s) / 2}px, ${top}px) scale(${s})`;
+}
+function measure(){             // body 바로 아래 요소들이 차지하는 실제 크기
+  try {
+    const d = frame.contentDocument; if (!d || !d.body) return null;
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    for (const el of d.body.children) {
+      if (/^(SCRIPT|STYLE|LINK|NOSCRIPT|TEMPLATE)$/.test(el.tagName)) continue;
+      const cs = d.defaultView.getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.position === "fixed") continue;
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+      x1 = Math.min(x1, r.left); y1 = Math.min(y1, r.top); x2 = Math.max(x2, r.right); y2 = Math.max(y2, r.bottom);
+    }
+    return x2 > x1 ? { w:x2 - x1, h:y2 - y1 } : null;
+  } catch (_) { return null; }
+}
+function autosize(){
+  const m = measure();
+  const fills = !m || (m.w >= GW - 8 && m.h >= GH - 8);   // 창을 꽉 채우는 게임 → 기본 크기 유지
+  if (!fills) { GW = Math.ceil(m.w) + 24; GH = Math.ceil(m.h) + 24; }
+  fit();
+}
+frame.addEventListener("load", () => {
+  GW = BASE.w; GH = BASE.h; fit();
+  requestAnimationFrame(autosize); setTimeout(autosize, 600);   // 시작 화면이 늦게 그려지는 게임 대비
+});
+window.addEventListener("resize", fit);
+document.addEventListener("fullscreenchange", fit);
+document.addEventListener("webkitfullscreenchange", fit);
+fit();
+
+document.getElementById("full").onclick = () => {
+  if (isFull()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else (stage.requestFullscreen || stage.webkitRequestFullscreen || (()=>{})).call(stage);
+  setTimeout(() => frame.focus(), 100);
+};
+document.getElementById("newwin").onclick = () => {
+  const v = versions.find(x => x.key === window.rvKey); if (!v) return;
+  if (v.key === "latest") window.open("play/", "_blank");
+  else window.open(URL.createObjectURL(new Blob([v.html], { type:"text/html" })), "_blank");
+};
 
 (async () => {
   const [stu, sub] = await Promise.all([
