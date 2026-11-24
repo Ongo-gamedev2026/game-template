@@ -157,8 +157,30 @@ document.getElementById("newwin").onclick = () => {
   ]);
   const me = (stu.students || []).find(s => s.repo === REPO);
   if (me) document.getElementById("who").textContent = `학생 ${me.no}` + (me.nickname ? ` · ${me.nickname}` : "") + "의";
-  const recs = (sub.records || []).filter(r => r.repo === REPO)
-    .sort((a,b) => new Date(a.published_at) - new Date(b.published_at));
+  const recs = (sub.records || []).filter(r => r.repo === REPO);
+
+  // 방금 올린 제출도 바로 보이도록(제출 기록 모으기는 15분마다 돌아요), 이 저장소의 제출(릴리스)을 직접 확인해요.
+  // 릴리스 이름에서 게임 버전(ver4)과 만든 도구(Antigravity)도 알아내요. 확인이 안 되면 기록만으로 보여 줘요.
+  let live = [];
+  try {
+    const ck = "rel:" + REPO; let c = null;
+    try { c = JSON.parse(sessionStorage.getItem(ck) || "null"); } catch (_) {}
+    if (c && Date.now() - c.t < 120000) live = c.d;
+    else {
+      const r = await fetch(`https://api.github.com/repos/${ORG}/${REPO}/releases?per_page=100`);
+      if (r.ok) {
+        live = (await r.json()).filter(x => !x.draft).map(x => ({ tag:x.tag_name, name:x.name || "", notes:(x.body || "").slice(0, 3000), published_at:x.published_at || x.created_at }));
+        try { sessionStorage.setItem(ck, JSON.stringify({ t:Date.now(), d:live })); } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  live.forEach(x => {
+    const m = /^week(\d+)-v(\d+)$/.exec(x.tag || ""); if (!m) return;
+    const r = recs.find(r => r.tag === x.tag);
+    if (r) { if (!r.name) r.name = x.name; }
+    else recs.push({ repo:REPO, tag:x.tag, week:+m[1], version:+m[2], published_at:x.published_at, notes:x.notes, name:x.name });
+  });
+  recs.sort((a,b) => new Date(a.published_at) - new Date(b.published_at));
 
   // 제출된 버전마다 그때의 게임 파일을 불러와서, 게임이 실제로 바뀐 제출만 버전으로 보여요
   const files = await Promise.all(recs.map(r => fetch(RAW(r.tag)).then(x => x.ok ? x.text() : null).catch(() => null)));
@@ -167,7 +189,8 @@ document.getElementById("newwin").onclick = () => {
     const html = files[i];
     if (!html || isPlaceholder(html) || html === prev) return;
     prev = html;
-    versions.push({ key:r.tag, label:`${r.week}주차 v${r.version}`, rec:r, html });
+    const g = /ver\s*(\d+)/i.exec(r.name || "");
+    versions.push({ key:r.tag, label:`${r.week}주차 v${r.version}` + (g ? ` · ver${g[1]}` : "") + (/Antigravity/i.test(r.name || "") ? " 🛸 Antigravity" : ""), rec:r, html });
   });
   versions.push({ key:"latest", label:"최신", rec:null, html:null });
 
